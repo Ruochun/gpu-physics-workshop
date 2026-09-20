@@ -112,7 +112,6 @@ class LBoxRun:
         s.SetInitTimeStep(self.timestep)
         s.SetMaxVelocity(a.max_velocity)
         s.SetErrorOutVelocity(a.error_velocity)
-        s.SetInitBinNumTarget(500_000)
         s.DisableAdaptiveBinSize()
         s.Initialize()
 
@@ -256,7 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--flow-time", type=nonnegative, default=10.0)
     parser.add_argument("--output-interval", type=positive, default=0.1)
     parser.add_argument("--max-velocity", type=positive, default=40000.0)
-    parser.add_argument("--error-velocity", type=positive, default=50000.0)
+    parser.add_argument("--error-velocity", type=positive, default=500000.0)
     parser.add_argument("--particle-limit", type=int, default=0,
                         help="use only the first N particles for smoke testing")
     parser.add_argument("--verbosity", choices=("QUIET", "ERROR", "WARNING", "INFO", "METRIC", "DEBUG"),
