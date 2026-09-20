@@ -38,3 +38,28 @@ configure_force_model(solver, Path("DFCModel.cu"))
 particles = read_particles_csv("input.csv", params)
 particle_tracker = add_particles(solver, material, particles)
 ```
+
+## L-box simulation
+
+Run the complete settling and flow experiment with:
+
+```bash
+conda run -n tmp_workshop python lbox_dfc.py --output-dir lbox_output
+```
+
+The temporary gate at `x=56 mm` remains active until total kinetic energy is
+below the configured threshold for several consecutive checks. Its particle
+contacts are then disabled and the concrete flows into the horizontal section.
+The output directory contains particle VTK frames, the L-box mesh, gate VTK
+frames for the settling phase, `particles.pvd` and `scene.pvd` ParaView time
+series, per-frame diagnostics, and a JSON record of all run parameters.
+
+For a short installation check rather than a physical run:
+
+```bash
+conda run -n tmp_workshop python lbox_dfc.py \
+  --particle-limit 10 --initial-timestep 1e-6 --max-timestep 1e-6 \
+  --min-settle-time 0 --max-settle-time 1e-6 --flow-time 1e-6 \
+  --ke-check-interval 1e-6 --output-interval 1e-6 \
+  --output-dir /tmp/lbox-smoke
+```

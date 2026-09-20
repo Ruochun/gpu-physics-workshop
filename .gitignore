@@ -209,6 +209,12 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
+# Local DEM/DFC simulation products
+test_output/
+output/
+OUT_LBox/
+lbox_output/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

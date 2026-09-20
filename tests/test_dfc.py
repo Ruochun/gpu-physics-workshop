@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from dfc_model import DFCParameters, read_particles_csv
+from lbox_dfc import prepare_output_directory, write_pvd
 from test_dfc_two_spheres import normal_force_oracle
 
 
@@ -36,6 +37,25 @@ class TestDFC(unittest.TestCase):
         self.assertLess(states[1]["force"], 0.0)
         self.assertGreater(states[2]["force"], 0.0)
         self.assertGreater(states[3]["force"], states[2]["force"])
+
+    def test_pvd_writer_escapes_filenames(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "series.pvd"
+            write_pvd(target, [(0.25, 0, "a&b.vtk")])
+            text = target.read_text(encoding="utf-8")
+            self.assertIn('timestep="0.25"', text)
+            self.assertIn('file="a&amp;b.vtk"', text)
+
+    def test_output_directory_requires_explicit_overwrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "output"
+            target.mkdir()
+            generated = target / "particles_000000.vtk"
+            generated.write_text("generated", encoding="utf-8")
+            with self.assertRaises(FileExistsError):
+                prepare_output_directory(target, overwrite=False)
+            prepare_output_directory(target, overwrite=True)
+            self.assertFalse(generated.exists())
 
 
 if __name__ == "__main__":

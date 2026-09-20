@@ -104,11 +104,13 @@ def read_particles_csv(
     return particles
 
 
-def add_particles(solver, material, particles: Sequence[Particle]):
+def add_particles(solver, material, particles: Sequence[Particle], family: int = 0):
     """Create sphere templates, add the particles to DEME, and return a tracker."""
     templates = [solver.LoadSphereType(p.mass, p.radius, material) for p in particles]
     positions = [[p.x, p.y, p.z] for p in particles]
-    return solver.Track(solver.AddClumps(templates, positions))
+    batch = solver.AddClumps(templates, positions)
+    batch.SetFamily(family)
+    return solver.Track(batch)
 
 
 def configure_force_model(solver, model_path: str | Path):
