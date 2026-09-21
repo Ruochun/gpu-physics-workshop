@@ -3,6 +3,21 @@
 // consistently by the caller (the L-box uses mm, s, and its derived force unit).
 
 if (overlapDepth > 0.f) {
+    // Keep model-specific utilities local to the generated contact kernel. CUDA
+    // lambdas inherit the execution space of their enclosing function, so no
+    // separately injected prerequisite source is needed.
+    const auto safe_basis_y = [](const float3 n) {
+        const float3 ref = fabsf(n.y) < 0.9f ? make_float3(0.f, 1.f, 0.f)
+                                              : make_float3(0.f, 0.f, 1.f);
+        return normalize(cross(normalize(cross(n, ref)), n));
+    };
+    const auto floc_rhs = [](float lambda_value, float shear_rate,
+                             float beta_value, float exponent, float critical_time) {
+        lambda_value = fmaxf(lambda_value, 1.e-8f);
+        return 1.f / (critical_time * powf(lambda_value, exponent))
+               - beta_value * shear_rate * lambda_value;
+    };
+
     const float h_mat = mortar_layer_mat[bodyAMatType];
     const float ENm = ENm_mat[bodyAMatType];
     const float ENa = ENa_mat[bodyAMatType];
@@ -19,7 +34,7 @@ if (overlapDepth > 0.f) {
         lambda = lambda_init_mat[bodyAMatType];
 
     const float3 normal = -B2A;
-    const float3 tangent_m = dfc_safe_basis_y(normal);
+    const float3 tangent_m = safe_basis_y(normal);
     const float3 tangentLong = normalize(cross(normal, tangent_m));
 
     float h = h_mat;
@@ -91,10 +106,18 @@ if (overlapDepth > 0.f) {
 
     const float equivalent_rate = sqrtf(beta*vdeps_n*vdeps_n
                                        + vdeps_m*vdeps_m + rateLong*rateLong);
-    lambda = dfc_advance_lambda(lambda, equivalent_rate, ts,
-                                flocbeta_mat[bodyAMatType],
-                                flocm_mat[bodyAMatType],
-                                flocTcr_mat[bodyAMatType]);
+    const float floc_beta = flocbeta_mat[bodyAMatType];
+    const float floc_exponent = flocm_mat[bodyAMatType];
+    const float floc_critical_time = flocTcr_mat[bodyAMatType];
+    const float k1 = floc_rhs(lambda, equivalent_rate, floc_beta,
+                              floc_exponent, floc_critical_time);
+    const float k2 = floc_rhs(lambda + .5f*ts*k1, equivalent_rate, floc_beta,
+                              floc_exponent, floc_critical_time);
+    const float k3 = floc_rhs(lambda + .5f*ts*k2, equivalent_rate, floc_beta,
+                              floc_exponent, floc_critical_time);
+    const float k4 = floc_rhs(lambda + ts*k3, equivalent_rate, floc_beta,
+                              floc_exponent, floc_critical_time);
+    lambda = fmaxf(lambda + ts*(k1 + 2.f*k2 + 2.f*k3 + k4)/6.f, 0.f);
     contact_info_lambda = lambda;
 
     float viscosity = eta0;

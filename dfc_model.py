@@ -119,27 +119,4 @@ def configure_force_model(solver, model_path: str | Path):
     model.SetMustHaveMatProp(set(DFCParameters().material_properties()))
     model.SetMustPairwiseMatProp(set())
     model.SetPerContactWildcards(CONTACT_WILDCARDS)
-    model.DefineCustomModelPrerequisites(
-        r"""
-        inline __device__ float3 dfc_safe_basis_y(const float3 n) {
-            float3 ref = fabsf(n.y) < 0.9f ? make_float3(0.f, 1.f, 0.f)
-                                             : make_float3(0.f, 0.f, 1.f);
-            return normalize(cross(normalize(cross(n, ref)), n));
-        }
-        inline __device__ float dfc_floc_rhs(float lambda, float shear_rate,
-                                             float beta, float exponent, float critical_time) {
-            lambda = fmaxf(lambda, 1.e-8f);
-            return 1.f / (critical_time * powf(lambda, exponent))
-                   - beta * shear_rate * lambda;
-        }
-        inline __device__ float dfc_advance_lambda(float lambda, float shear_rate, float dt,
-                                                   float beta, float exponent, float critical_time) {
-            const float k1 = dfc_floc_rhs(lambda, shear_rate, beta, exponent, critical_time);
-            const float k2 = dfc_floc_rhs(lambda + .5f*dt*k1, shear_rate, beta, exponent, critical_time);
-            const float k3 = dfc_floc_rhs(lambda + .5f*dt*k2, shear_rate, beta, exponent, critical_time);
-            const float k4 = dfc_floc_rhs(lambda + dt*k3, shear_rate, beta, exponent, critical_time);
-            return fmaxf(lambda + dt*(k1 + 2.f*k2 + 2.f*k3 + k4)/6.f, 0.f);
-        }
-        """
-    )
     return model

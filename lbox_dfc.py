@@ -96,8 +96,13 @@ class LBoxRun:
         configure_force_model(s, Path(__file__).with_name("DFCModel.cu"))
 
         mesh = s.AddWavefrontMeshObject(str(a.mesh.resolve()), material)
+        self.mesh_patch_count = mesh.SplitIntoConvexPatches(45.0)
+        print(f"Split L-box mesh into {self.mesh_patch_count} patches at 45 degrees")
         mesh.SetMass(1.0)
         mesh.SetFamily(LBOX_FAMILY)
+
+        # The selected mesh is the complete container. The gate below is its
+        # only analytical boundary.
         s.SetFamilyFixed(LBOX_FAMILY)
 
         # The supplied particle cloud reaches x ~= 52 mm. A plane at x=56 mm
@@ -219,6 +224,8 @@ class LBoxRun:
                           for key, value in vars(self.args).items()},
             "material": asdict(self.params),
             "particle_count": len(self.particles),
+            "mesh_patch_angle_degrees": 45.0,
+            "mesh_patch_count": self.mesh_patch_count,
             "settling_end_time": next(
                 float(row["time"]) for row in reversed(self.frame_rows) if row["phase"] == "settling"
             ),
@@ -239,7 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
     here = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--particles", type=Path, default=here / "input.csv")
-    parser.add_argument("--mesh", type=Path, default=here / "LBox_Mesh.obj")
+    parser.add_argument("--mesh", type=Path, default=here / "LBox.obj")
     parser.add_argument("--output-dir", type=Path, default=here / "lbox_output")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--mortar-thickness", type=nonnegative, default=4.0)
@@ -247,7 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--initial-timestep", type=positive, default=1.0e-8)
     parser.add_argument("--max-timestep", type=positive, default=1.0e-5)
     parser.add_argument("--timestep-growth", type=positive, default=1.01)
-    parser.add_argument("--settle-ke", type=nonnegative, default=0.5)
+    parser.add_argument("--settle-ke", type=nonnegative, default=20.)
     parser.add_argument("--settle-hold", type=int, default=5)
     parser.add_argument("--min-settle-time", type=nonnegative, default=0.1)
     parser.add_argument("--max-settle-time", type=positive, default=5.0)

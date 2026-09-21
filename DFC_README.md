@@ -47,9 +47,12 @@ Run the complete settling and flow experiment with:
 conda run -n tmp_workshop python lbox_dfc.py --output-dir lbox_output
 ```
 
-The temporary gate at `x=56 mm` remains active until total kinetic energy is
-below the configured threshold for several consecutive checks. Its particle
-contacts are then disabled and the concrete flows into the horizontal section.
+The default container uses `LBox.obj` as the complete confining boundary.
+DEME splits it into natural convex patches using a 45-degree hard-angle
+threshold before initialization. The temporary gate at `x=56 mm` is the only
+analytical boundary. It remains active until total kinetic energy is below the
+configured threshold for several consecutive checks; its particle contacts are
+then disabled and the concrete flows into the horizontal section.
 The output directory contains particle VTK frames, the L-box mesh, gate VTK
 frames for the settling phase, `particles.pvd` and `scene.pvd` ParaView time
 series, per-frame diagnostics, and a JSON record of all run parameters.
